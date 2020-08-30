@@ -67,21 +67,15 @@ module choc() {
     }
 }
 
-// cap dimentions guestimated with photogrametry in some cases...
-module choc_cap_corner(t) translate(t) cube(TINY);
-module choc_cap_half() {
-    choc_cap_corner([17.53/2, -17.9/2, -2]);
-    choc_cap_corner([17.53/2,  17.9/2, -2]);
-    choc_cap_corner([12/2, -(17.9-2)/2, 4.23-2]);
-    choc_cap_corner([12/2,  (17.9-2)/2, 3.8-2]);
-}
 module choc_cap()
     orient()
-        translate([0, 0, 5.8])
-            hull() {
-                choc_cap_half();
-                mirror([1, 0, 0]) choc_cap_half();
+        translate([0, 0, 5.8]) union() {
+            extrude(2.05) square([17.5, 16.5], true);
+            difference() {
+                extrude(-1.5) square([17.5, 16.5], true);
+                extrude(-1.5) square([17.5-2, 16.5-2], true);
             }
+        }
 
 
 /////////////////////////////////
@@ -143,18 +137,19 @@ module rows_n_columns(rows_rxyzt, columns)
 module cap_n_key() {
     color([0.4, 0.7, 0.4, 1.0]) choc();
     color([0.7, 0.4, 0.4, 1.0]) choc_cap();
-    color([0.7, 0.6, 0.6, 1.0]) translate([-3, 0, 0]) choc_cap();
+    //color([0.7, 0.6, 0.6, 1.0]) translate([-3, 0, 0]) choc_cap();
 }
 
 
 rows_rxyzt = [
-  //[   r   ,   x   ,   y   ,   z   ,   t   ],
-    [  40   ,   2   ,   4   , 9* 9  ,   8   ],
-    [  42   ,   0   ,   2   , 9* 7  ,   2   ],
-    [  42   ,  -2   ,   0   , 9* 5  ,  -2   ],
-    [  37   ,   3   ,  -5   , 9* 3  ,  -5   ],
-    [  30   ,   7   ,  -9   , 9* 1  ,  -9   ]
+  //[   r   ,   x   ,   y   ,   z    ,   t   ],
+    [  40   ,   2   ,   4   , 9*9+0.9,   8   ],
+    [  42   ,   0   ,   2   , 9*7+0.4,   2   ],
+    [  42   ,  -2   ,   0   , 9*5    ,  -2   ],
+    [  37   ,   3   ,  -5   , 9*3    ,  -5   ],
+    [  30   ,   7   ,  -9   , 9*1-0.4,  -9   ]
 ];
+
 
 module get_child(i) {
     children(i);
@@ -163,7 +158,7 @@ module get_child(i) {
 get_child(0)
 rows_n_columns(rows_rxyzt, 3) {
     cap_n_key();
-    socket();
+    //socket();
 }
 
 

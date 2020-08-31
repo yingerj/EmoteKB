@@ -16,11 +16,12 @@ RXYZT = [
     [  42   ,   0   ,   2   , 9*7+0.4,   2   ],
     [  42   ,  -2   ,   0   , 9*5    ,  -2   ],
     [  37   ,   3   ,  -5   , 9*3    ,  -5   ],
-    [  30   ,   7   ,  -9   , 9*1-0.4,  -9   ]
+    [  30   ,   7   ,  -9   , 9*1-0.4,  -8   ]
 ];
+
 //// Tiny value for small things to be used as edges of convex hulls.
-TINY = 1; // Use a big TINY value to debug
-//TINY = 0.001;
+//TINY = 1; // Use a big TINY value to debug
+TINY = 0.001;
 
 
 /////////////////////////////////
@@ -53,7 +54,7 @@ base_depth = 2.2;
 nub_depth = base_depth + 2.65;
 pin_depth = base_depth + 3;
 
-module choc() {
+module choc()
     orient() {
         // base top
         extrude(0.8) square(15, true);
@@ -84,7 +85,6 @@ module choc() {
         pin_nub(1, -pin_depth, [0, -5.9]);
         pin_nub(1, -pin_depth, [-5, -3.8]);
     }
-}
 
 module choc_cap()
     orient()
@@ -101,13 +101,15 @@ module choc_cap()
 // KB Submodules               //
 /////////////////////////////////
 
+socket_w = 17.6;
+
 module socket() {
     bottom_d = 2.2;
     nub_d = 2.65;
     depth = bottom_d + nub_d;
     difference() {
         orient() translate([0, 0, -depth])
-            extrude(depth) square(17, true);
+            extrude(depth) square(socket_w, true);
         choc();
         // pin rebates
         orient() translate([0, -5.9, -depth])
@@ -118,7 +120,7 @@ module socket() {
 }
 
 module socket_corner(c=[1,1]) {
-    off = 17.2/2;
+    off = socket_w/2;
     orient() translate([c[0] * off, c[1] * off, -nub_depth])
         linear_extrude(nub_depth)
             square(TINY, true);
@@ -126,10 +128,10 @@ module socket_corner(c=[1,1]) {
 
 
 /////////////////////////////////
-// Organization                //
+// KB Organization             //
 /////////////////////////////////
 
-module finger_grid(i, j) {
+module finger_grid(i, j)
     // Row i-th spot
     translate ([RXYZT[i][IDX_X], RXYZT[i][IDX_Y], RXYZT[i][IDX_Z]])
         rotate ([0, RXYZT[i][IDX_T], 0]) {
@@ -144,7 +146,6 @@ module finger_grid(i, j) {
                     translate([-(r+5.8), 0, 0])
                         children();
         }
-}
 
 module finger_grid_full()
     for (i = [0:I-1])
@@ -156,21 +157,58 @@ module finger_grid_full()
 // Assembly & Display          //
 /////////////////////////////////
 
+
+module finger_pad(i) {
+    union() {
+        // Sockets
+        finger_grid_full()
+            socket();
+        // Horizontal Web
+        for (i = [0:I-2])
+            for (j = [0:J-1])
+                hull() {
+                    finger_grid(i, j) socket_corner([1, 1]);
+                    finger_grid(i, j) socket_corner([1, -1]);
+                    finger_grid(i+1, j) socket_corner([-1, 1]);
+                    finger_grid(i+1, j) socket_corner([-1, -1]);
+                }
+        // Vertical Web
+        for (i = [0:I-1])
+            for (j = [0:J-2])
+                hull() {
+                    finger_grid(i, j+1) socket_corner([1, 1]);
+                    finger_grid(i, j+1) socket_corner([-1, 1]);
+                    finger_grid(i, j) socket_corner([1, -1]);
+                    finger_grid(i, j) socket_corner([-1, -1]);
+                }
+        // Center Web
+        for (i = [0:I-2])
+            for (j = [0:J-2])
+                hull() {
+                    finger_grid(i+1, j+1) socket_corner([-1,1]);
+                    finger_grid(i+1, j) socket_corner([-1,-1]);
+                    finger_grid(i, j+1) socket_corner([1,1]);
+                    finger_grid(i, j) socket_corner([1,-1]);
+                }
+    }
+}
+
 module cap_n_key() {
-    color([0.4, 0.7, 0.4, 1.0]) choc();
-    color([0.7, 0.4, 0.4, 1.0]) choc_cap();
-    //color([0.7, 0.6, 0.6, 1.0]) translate([-3, 0, 0]) choc_cap();
+    //color([0.4, 0.7, 0.4, 1.0]) choc();
+    //color([0.7, 0.4, 0.4, 1.0]) choc_cap();
+    color([0.7, 0.6, 0.6, 1.0]) translate([-3, 0, 0]) choc_cap();
 }
 
-finger_grid_full() {
-    cap_n_key();
-    socket();
+difference() {
+    finger_pad();
+    finger_grid_full() cap_n_key();
 }
 
-finger_grid(2,1) {
-    socket_corner([1,1]);
-    socket_corner([1,-1]);
-    socket_corner([-1,1]);
-    socket_corner([-1,-1]);
-}
-
+module socket_corner_help()
+    translate([-2,0,0])finger_grid(2,1) {
+        color([1.0, 0.0, 0.0, 1.0]) socket_corner([1,1]);
+        color([0.0, 1.0, 0.0, 1.0]) socket_corner([1,-1]);
+        color([0.0, 0.0, 1.0, 1.0]) socket_corner([-1,1]);
+        color([0.5, 0.5, 0.5, 1.0]) socket_corner([-1,-1]);
+    }
+//socket_corner_help();

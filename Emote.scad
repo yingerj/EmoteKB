@@ -1,14 +1,33 @@
 
+/////////////////////////////////
+// Parameters                  //
+/////////////////////////////////
 
-TINY = 0.001;
+// Finger Pad
+I = 5; // Columns
+J = 3; // Rows
 
+//// Grid Specification: Per Column
+// RXYZT -> {r: radius, x: finger "down", y: finger "in/out", z: up/down, t: tilt}
+IDX_R = 0; IDX_X = 1; IDX_Y = 2; IDX_Z = 3; IDX_T = 4;
+RXYZT = [
+  //[   r   ,   x   ,   y   ,   z    ,   t   ],
+    [  40   ,   2   ,   4   , 9*9+1.0,   8   ],
+    [  42   ,   0   ,   2   , 9*7+0.4,   2   ],
+    [  42   ,  -2   ,   0   , 9*5    ,  -2   ],
+    [  37   ,   3   ,  -5   , 9*3    ,  -5   ],
+    [  30   ,   7   ,  -9   , 9*1-0.4,  -9   ]
+];
+//// Tiny value for small things to be used as edges of convex hulls.
+TINY = 1; // Use a big TINY value to debug
+//TINY = 0.001;
+
+
+/////////////////////////////////
+// Utility                     //
+/////////////////////////////////
 
 module orient() rotate([0, 90, 0]) children();
-
-
-/////////////////////////////////
-// Better Generic Modules      //
-/////////////////////////////////
 
 module extrude(h)
     if (h > 0.0)
@@ -100,38 +119,41 @@ module socket() {
 
 module socket_corner(c=[1,1]) {
     off = 17.2/2;
-    translate([c[0] * off, c[1] * off, -nub_depth])
+    orient() translate([c[0] * off, c[1] * off, -nub_depth])
         linear_extrude(nub_depth)
             square(TINY, true);
 }
+
 
 /////////////////////////////////
 // Organization                //
 /////////////////////////////////
 
-module column(n, r) {
-    a = 2*asin(9/r);
-    a_0 = -a*(n-1)/2;
-    translate([r, 0, 0])
-        for (i = [0:n-1])
-            rotate(i*a + a_0, [0,0,1])
-                translate([-(r+5.8), 0, 0])
-                    children();
+module finger_grid(i, j) {
+    // Row i-th spot
+    translate ([RXYZT[i][IDX_X], RXYZT[i][IDX_Y], RXYZT[i][IDX_Z]])
+        rotate ([0, RXYZT[i][IDX_T], 0]) {
+            // Column j-th spot
+            r = RXYZT[i][IDX_R];
+            a = 2*asin(9/r);
+            a0 = -a*(J-1)/2;
+            // Reference to center key/key-divide for odd/even respectively
+            translate([r, 0, 0])
+                // Spot on the column arc
+                rotate(j*a + a0, [0,0,1])
+                    translate([-(r+5.8), 0, 0])
+                        children();
+        }
 }
 
-// {r: radius, x: finger "down", y: finger "in/out", z: up/down, t: tilt}
-IDX_R = 0; IDX_X = 1; IDX_Y = 2; IDX_Z = 3; IDX_T = 4;
-
-module rows_n_columns(rows_rxyzt, columns)
-    for (i = [0:len(rows_rxyzt)-1])
-        translate ([rows_rxyzt[i][IDX_X], rows_rxyzt[i][IDX_Y], rows_rxyzt[i][IDX_Z]])
-            rotate ([0, rows_rxyzt[i][IDX_T], 0])
-                column(columns, rows_rxyzt[i][IDX_R])
-                    children();
-
+module finger_grid_full()
+    for (i = [0:I-1])
+        for (j = [0:J-1])
+            finger_grid(i, j)
+                children();
 
 /////////////////////////////////
-// Display                     //
+// Assembly & Display          //
 /////////////////////////////////
 
 module cap_n_key() {
@@ -140,25 +162,15 @@ module cap_n_key() {
     //color([0.7, 0.6, 0.6, 1.0]) translate([-3, 0, 0]) choc_cap();
 }
 
-
-rows_rxyzt = [
-  //[   r   ,   x   ,   y   ,   z    ,   t   ],
-    [  40   ,   2   ,   4   , 9*9+0.9,   8   ],
-    [  42   ,   0   ,   2   , 9*7+0.4,   2   ],
-    [  42   ,  -2   ,   0   , 9*5    ,  -2   ],
-    [  37   ,   3   ,  -5   , 9*3    ,  -5   ],
-    [  30   ,   7   ,  -9   , 9*1-0.4,  -9   ]
-];
-
-
-module get_child(i) {
-    children(i);
-}
-
-get_child(0)
-rows_n_columns(rows_rxyzt, 3) {
+finger_grid_full() {
     cap_n_key();
-    //socket();
+    socket();
 }
 
+finger_grid(2,1) {
+    socket_corner([1,1]);
+    socket_corner([1,-1]);
+    socket_corner([-1,1]);
+    socket_corner([-1,-1]);
+}
 

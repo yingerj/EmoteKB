@@ -3,25 +3,33 @@
 // Parameters                  //
 /////////////////////////////////
 
-// Finger Pad
-I = 5; // Columns
-J = 3; // Rows
-
 //// Grid Specification: Per Column
-// RXYZT -> {r: radius, x: finger "down", y: finger "in/out", z: up/down, t: tilt}
-IDX_R = 0; IDX_X = 1; IDX_Y = 2; IDX_Z = 3; IDX_T = 4;
-RXYZT = [
-  //[   r   ,   x   ,   y   ,   z    ,   t   ],
-    [  40   ,   2   ,   4   , 9*9+1.0,   8   ],
-    [  42   ,   0   ,   2   , 9*7+0.4,   2   ],
-    [  42   ,  -2   ,   0   , 9*5    ,  -2   ],
-    [  37   ,   3   ,  -5   , 9*3    ,  -5   ],
-    [  30   ,   7   ,  -9   , 9*1-0.4,  -8   ]
+// RXYZTJ -> {r: radius, x: finger "down", y: finger "in/out", z: up/down, t: tilt}
+IDX_R = 0; IDX_X = 1; IDX_Y = 2; IDX_Z = 3; IDX_T = 4; IDX_J = 5;
+
+// Finger Pad
+FINGER_I = 5; // Columns
+FINGER_J = 3; // Rows
+FINGER_RXYZTJ = [
+  //[   r   ,   x   ,   y   ,   z    ,   t   ,  j         ],
+    [  40   ,   2   ,   4   , 9*9+1.0,   8   ,  FINGER_J  ],
+    [  42   ,   0   ,   2   , 9*7+0.4,   2   ,  FINGER_J  ],
+    [  42   ,  -2   ,   0   , 9*5    ,  -2   ,  FINGER_J  ],
+    [  37   ,   3   ,  -5   , 9*3    ,  -5   ,  FINGER_J  ],
+    [  30   ,   7   ,  -9   , 9*1-0.4,  -8   ,  FINGER_J  ]
+];
+// Finger Pad
+THUMB_I = 3; // Columns
+THUMB_RXYZTJ = [
+  //[   r   ,   x   ,   y   ,   z  ,   t    ,  j  ],
+    [  37   ,   4   ,   0   , 20   ,   24   ,  2  ],
+    [  40   ,   0   ,   0   , 0    ,   0    ,  3  ],
+    [  37   ,   4   ,   0   , -20  ,  -24   ,  2  ]
 ];
 
 //// Tiny value for small things to be used as edges of convex hulls.
-//TINY = 1; // Use a big TINY value to debug
-TINY = 0.001;
+TINY = 1; // Use a big TINY value to debug
+//TINY = 0.001;
 
 
 /////////////////////////////////
@@ -131,14 +139,15 @@ module socket_corner(c=[1,1]) {
 // KB Organization             //
 /////////////////////////////////
 
-module finger_grid(i, j)
+
+module grid(rxyztj, i, j)
     // Row i-th spot
-    translate ([RXYZT[i][IDX_X], RXYZT[i][IDX_Y], RXYZT[i][IDX_Z]])
-        rotate ([0, RXYZT[i][IDX_T], 0]) {
+    translate ([rxyztj[i][IDX_X], rxyztj[i][IDX_Y], rxyztj[i][IDX_Z]])
+        rotate ([0, rxyztj[i][IDX_T], 0]) {
             // Column j-th spot
-            r = RXYZT[i][IDX_R];
+            r = rxyztj[i][IDX_R];
             a = 2*asin(9/r);
-            a0 = -a*(J-1)/2;
+            a0 = -a*(rxyztj[i][IDX_J]-1)/2;
             // Reference to center key/key-divide for odd/even respectively
             translate([r, 0, 0])
                 // Spot on the column arc
@@ -147,68 +156,116 @@ module finger_grid(i, j)
                         children();
         }
 
-module finger_grid_full()
-    for (i = [0:I-1])
-        for (j = [0:J-1])
-            finger_grid(i, j)
+module grid_full(rxyztj)
+    for (i = [0:len(rxyztj)-1]) {
+        for (j = [0:rxyztj[i][IDX_J]-1])
+            grid(rxyztj, i, j)
                 children();
+    }
 
 /////////////////////////////////
 // Assembly & Display          //
 /////////////////////////////////
 
+module socket_corner_help(rxyztj, i ,j)
+    translate([-2,0,0])grid(rxyztj, i, j) {
+        color([1.0, 0.0, 0.0, 1.0]) socket_corner([1,1]);
+        color([0.0, 1.0, 0.0, 1.0]) socket_corner([1,-1]);
+        color([0.0, 0.0, 1.0, 1.0]) socket_corner([-1,1]);
+        color([0.5, 0.5, 0.5, 1.0]) socket_corner([-1,-1]);
+    }
 
-module finger_pad(i) {
+module finger_pad_position() {
+    translate([0, 0, 6.5]) rotate([0, -57, 0]) rotate([0, 0, -13]) children();
+}
+module finger_pad() {
     union() {
         // Sockets
-        finger_grid_full()
+        grid_full(FINGER_RXYZTJ)
             socket();
         // Horizontal Web
-        for (i = [0:I-2])
-            for (j = [0:J-1])
+        for (i = [0:FINGER_I-2])
+            for (j = [0:FINGER_RXYZTJ[i][IDX_J]-1])
                 hull() {
-                    finger_grid(i, j) socket_corner([1, 1]);
-                    finger_grid(i, j) socket_corner([1, -1]);
-                    finger_grid(i+1, j) socket_corner([-1, 1]);
-                    finger_grid(i+1, j) socket_corner([-1, -1]);
+                    grid(FINGER_RXYZTJ, i, j) socket_corner([1, 1]);
+                    grid(FINGER_RXYZTJ, i, j) socket_corner([1, -1]);
+                    grid(FINGER_RXYZTJ, i+1, j) socket_corner([-1, 1]);
+                    grid(FINGER_RXYZTJ, i+1, j) socket_corner([-1, -1]);
                 }
         // Vertical Web
-        for (i = [0:I-1])
-            for (j = [0:J-2])
+        for (i = [0:FINGER_I-1])
+            for (j = [0:FINGER_RXYZTJ[i][IDX_J]-2])
                 hull() {
-                    finger_grid(i, j+1) socket_corner([1, 1]);
-                    finger_grid(i, j+1) socket_corner([-1, 1]);
-                    finger_grid(i, j) socket_corner([1, -1]);
-                    finger_grid(i, j) socket_corner([-1, -1]);
+                    grid(FINGER_RXYZTJ, i, j+1) socket_corner([1, 1]);
+                    grid(FINGER_RXYZTJ, i, j+1) socket_corner([-1, 1]);
+                    grid(FINGER_RXYZTJ, i, j) socket_corner([1, -1]);
+                    grid(FINGER_RXYZTJ, i, j) socket_corner([-1, -1]);
                 }
         // Center Web
-        for (i = [0:I-2])
-            for (j = [0:J-2])
+        for (i = [0:FINGER_I-2])
+            for (j = [0:FINGER_RXYZTJ[i][IDX_J]-2])
                 hull() {
-                    finger_grid(i+1, j+1) socket_corner([-1,1]);
-                    finger_grid(i+1, j) socket_corner([-1,-1]);
-                    finger_grid(i, j+1) socket_corner([1,1]);
-                    finger_grid(i, j) socket_corner([1,-1]);
+                    grid(FINGER_RXYZTJ, i+1, j+1) socket_corner([-1,1]);
+                    grid(FINGER_RXYZTJ, i+1, j) socket_corner([-1,-1]);
+                    grid(FINGER_RXYZTJ, i, j+1) socket_corner([1,1]);
+                    grid(FINGER_RXYZTJ, i, j) socket_corner([1,-1]);
                 }
     }
 }
+//finger_pad_position() finger_pad();
+
+module thumb_pad_position() {
+    translate([-90, -30, 33]) rotate([0, 0, -60]) rotate([20, -24, -90]) children();
+};
+module thumb_pad() {
+    union() {
+        // Sockets
+        grid_full(THUMB_RXYZTJ)
+            socket();
+        // Vertical Web
+        for (i = [0:THUMB_I-1])
+            for (j = [0:THUMB_RXYZTJ[i][IDX_J]-2])
+                color([i*0.4, j*0.3, 0.5, 1.0]) hull() {
+                    grid(THUMB_RXYZTJ, i, j+1) socket_corner([1, 1]);
+                    grid(THUMB_RXYZTJ, i, j+1) socket_corner([-1, 1]);
+                    grid(THUMB_RXYZTJ, i, j) socket_corner([1, -1]);
+                    grid(THUMB_RXYZTJ, i, j) socket_corner([-1, -1]);
+                }
+        for (i = [0:THUMB_I-2]) {
+            J = max(THUMB_RXYZTJ[i][IDX_J], THUMB_RXYZTJ[i+1][IDX_J]);
+            di = THUMB_RXYZTJ[i][IDX_J] > THUMB_RXYZTJ[i+1][IDX_J] ? -1 : 1;
+            // Horizontal Web
+            for (j = [0:J-1])
+                color([i*0.4, j*0.3, 0.5, 1.0]) hull() {
+                    grid(THUMB_RXYZTJ, i, j) socket_corner([1, 1]);
+                    grid(THUMB_RXYZTJ, i, j) socket_corner([1, -1]);
+                    grid(THUMB_RXYZTJ, i+1, j) socket_corner([-1, 1]);
+                    grid(THUMB_RXYZTJ, i+1, j) socket_corner([-1, -1]);
+                }
+            // Center Web
+            for (j = [0:J-3])
+                color([i*0.4, j*0.3, 0.0, 1.0]) hull() {
+                    grid(THUMB_RXYZTJ, i+1, j+1) socket_corner([-1,1]);
+                    grid(THUMB_RXYZTJ, i+1, j) socket_corner([-1,-1]);
+                    grid(THUMB_RXYZTJ, i, j+1) socket_corner([1,1]);
+                    grid(THUMB_RXYZTJ, i, j) socket_corner([1,-1]);
+                }
+        }
+    }
+};
+thumb_pad_position() thumb_pad();
+thumb_pad_position() socket_corner_help(THUMB_RXYZTJ, 1, 1);
 
 module cap_n_key() {
     //color([0.4, 0.7, 0.4, 1.0]) choc();
     //color([0.7, 0.4, 0.4, 1.0]) choc_cap();
     color([0.7, 0.6, 0.6, 1.0]) translate([-3, 0, 0]) choc_cap();
 }
+//finger_pad_position() grid_full(FINGER_RXYZTJ) cap_n_key();
+//thumb_pad_position() grid_full(THUMB_RXYZTJ) cap_n_key();
 
 difference() {
-    finger_pad();
-    finger_grid_full() cap_n_key();
+    thumb_pad_position() thumb_pad();
+    thumb_pad_position() grid_full(THUMB_RXYZTJ) cap_n_key();
 }
 
-module socket_corner_help()
-    translate([-2,0,0])finger_grid(2,1) {
-        color([1.0, 0.0, 0.0, 1.0]) socket_corner([1,1]);
-        color([0.0, 1.0, 0.0, 1.0]) socket_corner([1,-1]);
-        color([0.0, 0.0, 1.0, 1.0]) socket_corner([-1,1]);
-        color([0.5, 0.5, 0.5, 1.0]) socket_corner([-1,-1]);
-    }
-//socket_corner_help();

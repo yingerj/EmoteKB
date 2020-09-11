@@ -5,31 +5,31 @@
 
 //// Grid Specification: Per Column
 // RXYZTJ -> {r: radius, x: finger "down", y: finger "in/out", z: up/down, t: tilt}
-IDX_R = 0; IDX_X = 1; IDX_Y = 2; IDX_Z = 3; IDX_T = 4; IDX_J = 5;
+IDX_R = 0; IDX_X = 1; IDX_Y = 2; IDX_Z = 3; IDX_T = 4;
 
 // Finger Pad
 FINGER_I = 5; // Columns
 FINGER_J = 3; // Rows
 FINGER_RXYZTJ = [
-  //[   r   ,   x    ,   y   ,   z   ,   t   ,  j         ],
-    [  40   , 9*9+1.0,  -4   ,   2   ,   8   ,  FINGER_J  ],
-    [  42   , 9*7+0.4,  -2   ,   0   ,   2   ,  FINGER_J  ],
-    [  42   , 9*5    ,   0   ,  -2   ,  -2   ,  FINGER_J  ],
-    [  37   , 9*3    ,  -5   ,   3   ,  -5   ,  FINGER_J  ],
-    [  30   , 9*1-0.4,  -9   ,   8   ,  -8   ,  FINGER_J  ]
+  //[   r   ,   x      ,   y   ,   z   ,   t   ],
+    [  40   , 9.5*9+1.0,  -4   ,   2   ,   8   ],
+    [  42   , 9.5*7+0.4,  -2   ,   0   ,   2   ],
+    [  42   , 9.5*5    ,   0   ,  -2   ,  -2   ],
+    [  37   , 9.5*3    ,  -5   ,   3   ,  -5   ],
+    [  30   , 9.5*1-0.4,  -9   ,   8   ,  -8   ]
 ];
 // Finger Pad
 THUMB_I = 2; // Columns
 THUMB_J = 2; // Rows
 THUMB_RXYZTJ = [
-  //[   r   ,   x   ,   y   ,   z   ,   t    ,  j  ],
-    [  22   ,  10.2 ,   0   ,   4   ,   12   ,  2  ],
-    [  22   , -10.2 ,   0   ,   4   ,  -12   ,  2  ]
+  //[   r   ,   x   ,   y   ,   z   ,   t    ],
+    [  22   ,  10.2 ,   0   ,   4   ,   12   ],
+    [  22   , -10.2 ,   0   ,   4   ,  -12   ]
 ];
 
 //// Tiny value for small things to be used as edges of convex hulls.
-//TINY = 1; // Use a big TINY value to debug
-TINY = 0.001;
+TINY = 0.3; // Use a big TINY value to debug
+//TINY = 0.001;
 
 
 /////////////////////////////////
@@ -106,7 +106,7 @@ module choc_cap()
 // KB Submodules               //
 /////////////////////////////////
 
-socket_w = 17.5;
+socket_w = 18.0;
 
 module socket() {
     difference() {
@@ -124,10 +124,17 @@ module socket() {
 }
 
 module socket_corner(c=[1,1]) {
-    off = socket_w/2;
-    translate([c[0] * off, c[1] * off, -nub_depth])
+    off = socket_w/2 - TINY/ 2;
+    translate([c[0]*off, c[1]*off, -nub_depth])
         linear_extrude(nub_depth)
             square(TINY, true);
+}
+
+module socket_corner_edge(c=[1,1]) {
+    off = socket_w/2 + 3*TINY/ 2;
+    translate([c[0]*off, c[1]*off, -nub_depth])
+        linear_extrude(nub_depth)
+            square(3*TINY, true);
 }
 
 
@@ -136,7 +143,7 @@ module socket_corner(c=[1,1]) {
 /////////////////////////////////
 
 
-module grid(rxyztj, i, j)
+module grid(rxyztj, J, i, j)
     // Row i-th spot
     translate ([-rxyztj[i][IDX_X], rxyztj[i][IDX_Y], rxyztj[i][IDX_Z]])
         rotate ([0, rxyztj[i][IDX_T], 0]) {
@@ -144,7 +151,7 @@ module grid(rxyztj, i, j)
             // Column j-th spot
             r = rxyztj[i][IDX_R];
             a = 2*asin(9/r);
-            a0 = -a*(rxyztj[i][IDX_J]-1)/2;
+            a0 = -a*(J-1)/2;
             // Reference to center key/key-divide for odd/even respectively
             translate([0, 0, r])
                 // Spot on the column arc
@@ -153,10 +160,10 @@ module grid(rxyztj, i, j)
                         children();
         }
 
-module grid_full(rxyztj)
+module grid_full(rxyztj, J)
     for (i = [0:len(rxyztj)-1]) {
-        for (j = [0:rxyztj[i][IDX_J]-1])
-            grid(rxyztj, i, j)
+        for (j = [0:J-1])
+            grid(rxyztj, J, i, j)
                 children();
     }
 
@@ -164,8 +171,8 @@ module grid_full(rxyztj)
 // Assembly & Display          //
 /////////////////////////////////
 
-module socket_corner_help(rxyztj, i ,j)
-    translate([-2,0,0]) grid(rxyztj, i, j) {
+module socket_corner_help(rxyztj, J, i ,j)
+    translate([-2,0,0]) grid(rxyztj, J, i, j) {
         color([1.0, 0.0, 0.0, 1.0]) socket_corner([ 1, 1]);
         color([0.0, 1.0, 0.0, 1.0]) socket_corner([ 1,-1]);
         color([0.0, 0.0, 1.0, 1.0]) socket_corner([-1, 1]);
@@ -173,32 +180,110 @@ module socket_corner_help(rxyztj, i ,j)
     }
 
 
-module web(rxyztj, i, j, adv_i, adv_j) {
+module web(rxyztj, J, i, j, adv_i, adv_j) {
     hull () {
-        grid(rxyztj, i      , j+adv_j) socket_corner([ 1,  1]);
-        grid(rxyztj, i      , j      ) socket_corner([ 1, -1]);
-        grid(rxyztj, i+adv_i, j+adv_j) socket_corner([-1,  1]);
-        grid(rxyztj, i+adv_i, j      ) socket_corner([-1, -1]);
+        grid(rxyztj, J, i      , j+adv_j) socket_corner([ 1,  1]);
+        grid(rxyztj, J, i      , j      ) socket_corner([ 1, -1]);
+        grid(rxyztj, J, i+adv_i, j+adv_j) socket_corner([-1,  1]);
+        grid(rxyztj, J, i+adv_i, j      ) socket_corner([-1, -1]);
     }
 }
 
 module pad(rxyztj, I, J)
     union() {
         // Sockets
-        grid_full(rxyztj)
+        grid_full(rxyztj, J)
             socket();
         // Horizontal Web
         for (i = [0:I-2])
-            for (j = [0:rxyztj[i][IDX_J]-1])
-                web(rxyztj, i, j, 1, 0);
+            for (j = [0:J-1])
+                web(rxyztj, J, i, j, 1, 0);
         // Vertical Web
         for (i = [0:I-1])
-            for (j = [0:rxyztj[i][IDX_J]-2])
-                web(rxyztj, i, j, 0, 1);
+            for (j = [0:J-2])
+                web(rxyztj, J, i, j, 0, 1);
         // Center Web
         for (i = [0:I-2])
-            for (j = [0:rxyztj[i][IDX_J]-2])
-                web(rxyztj, i, j, 1, 1);
+            for (j = [0:J-2])
+                web(rxyztj, J, i, j, 1, 1);
+    }
+
+module pad_edge(rxyztj, I, J, t_xyz)
+    union() {
+        // Left/Right Sides
+        for (j = [0:J-1]) {
+            hull() {
+                grid(rxyztj, J, I-1, j) socket_corner_edge([ 1,  1]);
+                grid(rxyztj, J, I-1, j) socket_corner_edge([ 1, -1]);
+                translate(t_xyz) {
+                    grid(rxyztj, J, I-1, j) socket_corner_edge([ 1,  1]);
+                    grid(rxyztj, J, I-1, j) socket_corner_edge([ 1, -1]);
+                }
+            }
+            hull() {
+                grid(rxyztj, J, 0, j) socket_corner_edge([-1,  1]);
+                grid(rxyztj, J, 0, j) socket_corner_edge([-1, -1]);
+                translate(t_xyz) {
+                    grid(rxyztj, J, 0, j) socket_corner_edge([-1,  1]);
+                    grid(rxyztj, J, 0, j) socket_corner_edge([-1, -1]);
+                }
+            }
+        }
+        for (j = [0:J-2]) {
+            hull() {
+                grid(rxyztj, J, I-1, j+1) socket_corner_edge([ 1,  1]);
+                grid(rxyztj, J, I-1, j) socket_corner_edge([ 1, -1]);
+                translate(t_xyz) {
+                    grid(rxyztj, J, I-1, j+1) socket_corner_edge([ 1,  1]);
+                    grid(rxyztj, J, I-1, j) socket_corner_edge([ 1, -1]);
+                }
+            }
+            hull() {
+                grid(rxyztj, J, 0, j+1) socket_corner_edge([-1,  1]);
+                grid(rxyztj, J, 0, j) socket_corner_edge([-1, -1]);
+                translate(t_xyz) {
+                    grid(rxyztj, J, 0, j+1) socket_corner_edge([-1,  1]);
+                    grid(rxyztj, J, 0, j) socket_corner_edge([-1, -1]);
+                }
+            }
+        }
+        // Top/Bottom Sides
+        for (i = [0:I-1]) {
+            hull() {
+                grid(rxyztj, J, i, J-1) socket_corner_edge([-1, -1]);
+                grid(rxyztj, J, i, J-1) socket_corner_edge([ 1, -1]);
+                translate(t_xyz) {
+                    grid(rxyztj, J, i, J-1) socket_corner_edge([-1, -1]);
+                    grid(rxyztj, J, i, J-1) socket_corner_edge([ 1, -1]);
+                }
+            }
+            hull() {
+                grid(rxyztj, J, i, 0) socket_corner_edge([-1,  1]);
+                grid(rxyztj, J, i, 0) socket_corner_edge([ 1,  1]);
+                translate(t_xyz) {
+                    grid(rxyztj, J, i, 0) socket_corner_edge([-1,  1]);
+                    grid(rxyztj, J, i, 0) socket_corner_edge([ 1,  1]);
+                }
+            }
+        }
+        for (i = [0:I-2]) {
+            hull() {
+                grid(rxyztj, J, i+1, J-1) socket_corner_edge([-1, -1]);
+                grid(rxyztj, J, i, J-1) socket_corner_edge([ 1, -1]);
+                translate(t_xyz) {
+                    grid(rxyztj, J, i+1, J-1) socket_corner_edge([-1, -1]);
+                    grid(rxyztj, J, i, J-1) socket_corner_edge([ 1, -1]);
+                }
+            }
+            hull() {
+                grid(rxyztj, J, i+1, 0) socket_corner_edge([-1,  1]);
+                grid(rxyztj, J, i, 0) socket_corner_edge([ 1,  1]);
+                translate(t_xyz) {
+                    grid(rxyztj, J, i+1, 0) socket_corner_edge([-1,  1]);
+                    grid(rxyztj, J, i, 0) socket_corner_edge([ 1,  1]);
+                }
+            }
+        }
     }
 
 
@@ -211,13 +296,20 @@ module thumb_pad_position() {
     translate([-93, -38, 24]) rotate([0, -70, 39]) children();
 };
 thumb_pad_position() pad(THUMB_RXYZTJ, THUMB_I, THUMB_J);
-thumb_pad_position() socket_corner_help(THUMB_RXYZTJ, 1, 1);
+//thumb_pad_position() socket_corner_help(THUMB_RXYZTJ, 1, 1);
 
 module cap_n_key() {
     color([0.6, 0.8, 0.1, 1.0]) choc();
     color([0.8, 0.4, 0.0, 1.0]) choc_cap();
     color([0.6, 0.3, 0.0, 1.0]) translate([0, 0, -3]) choc_cap();
 }
-finger_pad_position() grid_full(FINGER_RXYZTJ) cap_n_key();
-thumb_pad_position() grid_full(THUMB_RXYZTJ) cap_n_key();
+finger_pad_position() grid_full(FINGER_RXYZTJ, FINGER_J) cap_n_key();
+thumb_pad_position() grid_full(THUMB_RXYZTJ, THUMB_J) cap_n_key();
 
+difference() {
+    union() {
+        finger_pad_position() pad_edge(FINGER_RXYZTJ, FINGER_I, FINGER_J, [30,0,-100]);
+        thumb_pad_position() pad_edge(THUMB_RXYZTJ, THUMB_I, THUMB_J, [-30,0,-80]);
+    }
+    extrude(-200) square(400, true);
+}

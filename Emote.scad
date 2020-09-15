@@ -6,6 +6,9 @@
 // Unify settings of $fn parameter
 FN = 16;
 
+// TINY Value for fudging stuff
+TINY = 0.01;
+
 // Socket Edge Corner Size
 SKTCNR = 0.6; // Use a big SKTCNR value to debug
 
@@ -68,10 +71,10 @@ module choc(subtractor=false)
         extrude(0.8) square(15, true);
         hull() {
             translate([0,0,0.8])
-                extrude(SKTCNR)
+                extrude(TINY)
                     square(15-2*0.6, true); // guestimate dimentions this line
             translate([0,0,5.8-3])
-                extrude(SKTCNR)
+                extrude(TINY)
                     square(15-3.5*0.8, true); // guestimate dimentions this line
         }
 
@@ -132,7 +135,7 @@ module socket()
 //  (-1,-1) -----( 1,-1) 
 //
 module socket_corner(c=[1,1]) {
-    off = socket_w/2 + SKTCNR/ 2;
+    off = socket_w/2 - SKTCNR/2;
     translate([c[0]*off, c[1]*off, -nub_depth])
         linear_extrude(nub_depth)
             square(SKTCNR, true);
@@ -329,22 +332,21 @@ module main_structure()
     difference() {
         union() {
             thumb_pad_position() pad(THUMB_RXYZTJ, THUMB_I, THUMB_J);
-            difference() {
-                finger_pad_position() pad_edge(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
-                difference() {
-                    thumb_pad_position() pad_subtractor(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
-                    thumb_pad_position() pad_edge(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
-                }
-            }
             finger_pad_position() pad(FINGER_RXYZTJ, FINGER_I, FINGER_J);
             difference() {
+                finger_pad_position() pad_edge(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
+                thumb_pad_position() pad_subtractor(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
+            }
+            difference() {
                 thumb_pad_position() pad_edge(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
-                difference() {
-                    finger_pad_position() pad_subtractor(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
-                    finger_pad_position() pad_edge(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
-                }
+                finger_pad_position() pad_subtractor(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
+            }
+            intersection() {
+                finger_pad_position() pad_edge(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
+                thumb_pad_position() pad_edge(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
             }
         }
+        //color([0.6, 0.3, 0.0, 1.0]) translate([0, 0, -3]) choc_cap(); // keycap pressed
         extrude(-200) square(400, true);
     }
 
@@ -456,8 +458,8 @@ color([0,1,0,1]) screw_subtractors();
 
 module main_housing()
     union () {
-        bottom_edge();
         main_structure();
+        bottom_edge();
         difference() {
             intersection() {
                 main_structure_subtractor();
@@ -474,7 +476,7 @@ module bottom_plate() {
         screw_subtractors();
     }
 }
-bottom_plate();
+//bottom_plate();
 
 /*
 module mcu_position() translate([-90, -10, 0]) rotate([90, 0, 90]) children();

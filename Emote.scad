@@ -130,6 +130,7 @@ module socket()
 //  (-1, 1) -----( 1, 1) 
 //     |            |
 //  (-1,-1) -----( 1,-1) 
+//
 module socket_corner(c=[1,1]) {
     off = socket_w/2 + SKTCNR/ 2;
     translate([c[0]*off, c[1]*off, -nub_depth])
@@ -137,13 +138,28 @@ module socket_corner(c=[1,1]) {
             square(SKTCNR, true);
 }
 
+module socket_corner_help(rxyztj, J, i ,j)
+    translate([-2,0,0]) grid(rxyztj, J, i, j) {
+        color([1.0, 0.0, 0.0, 1.0]) socket_corner([ 1, 1]);
+        color([0.0, 1.0, 0.0, 1.0]) socket_corner([ 1,-1]);
+        color([0.0, 0.0, 1.0, 1.0]) socket_corner([-1, 1]);
+        color([0.5, 0.5, 0.5, 1.0]) socket_corner([-1,-1]);
+    }
+
 // Edges! On the xy plane..
 //
-//  *---()---*
-//  |        |
-//  (-1)
-
-module socket_edge(c=[1,1]) {
+//     *---( 0, 1)---*
+//     |             |
+//  (-1, 0)       ( 1, 0)
+//     |             |
+//     *---( 0,-1)---*
+//
+module socket_edge(e=[0,1]) {
+    assert(abs(e[0]) + abs(e[1]) == 1, "socket_edge parameter e is invalid");
+    hull() {
+        socket_corner([abs(e[0]) ? e[0] :  1, abs(e[1]) ? e[1] :  1]);
+        socket_corner([abs(e[0]) ? e[0] : -1, abs(e[1]) ? e[1] : -1]);
+    }
 }
 
 
@@ -185,19 +201,13 @@ module grid_full(rxyztj, J, subtractor=false, sink_xyz=[0,0,0])
             }
         }
 
+
 /////////////////////////////////
 // Assembly                    //
 /////////////////////////////////
 
-module socket_corner_help(rxyztj, J, i ,j)
-    translate([-2,0,0]) grid(rxyztj, J, i, j) {
-        color([1.0, 0.0, 0.0, 1.0]) socket_corner([ 1, 1]);
-        color([0.0, 1.0, 0.0, 1.0]) socket_corner([ 1,-1]);
-        color([0.0, 0.0, 1.0, 1.0]) socket_corner([-1, 1]);
-        color([0.5, 0.5, 0.5, 1.0]) socket_corner([-1,-1]);
-    }
 
-
+// Webs go between sockets! Edges are within the same socket!
 module web(rxyztj, J, i, j, adv_i, adv_j) {
     hull () {
         grid(rxyztj, J, i      , j+adv_j) socket_corner([ 1,  1]);
@@ -293,7 +303,7 @@ module pad_edge(rxyztj, I, J, sink_xyz)
 
 module finger_pad_position() translate([0, 0, 2]) rotate([0, 26, 0]) children();
 
-module thumb_pad_position() translate([-94, -39, 24]) rotate([0, -70, 39]) children();
+module thumb_pad_position() translate([-96, -41, 24]) rotate([0, -60, 40]) children();
 
 module cap_n_key() {
     //color([0.6, 0.8, 0.1, 1.0]) choc();
@@ -310,10 +320,10 @@ module caps_n_keys() {
 // Final Assembly              //
 /////////////////////////////////
 
-caps_n_keys();
+//caps_n_keys();
 
-finger_sink = [30,0,-100];
-thumb_sink = [-23,0,-100];
+finger_sink = [20,0,-100];
+thumb_sink = [-15,0,-100];
 
 module main_structure()
     difference() {
@@ -335,13 +345,13 @@ module main_structure()
                 }
             }
         }
-        finger_pad_position() grid_full(FINGER_RXYZTJ, FINGER_J) choc(true);
-        thumb_pad_position() grid_full(THUMB_RXYZTJ, THUMB_J) choc(true);
-        finger_pad_position() grid_full(FINGER_RXYZTJ, FINGER_J) translate([0, 0, -3.5]) choc_cap();
-        thumb_pad_position() grid_full(THUMB_RXYZTJ, THUMB_J) translate([0, 0, -3.5]) choc_cap();
+        //finger_pad_position() grid_full(FINGER_RXYZTJ, FINGER_J) choc(true);
+        //thumb_pad_position() grid_full(THUMB_RXYZTJ, THUMB_J) choc(true);
+        //finger_pad_position() grid_full(FINGER_RXYZTJ, FINGER_J) translate([0, 0, -3.5]) choc_cap();
+        //thumb_pad_position() grid_full(THUMB_RXYZTJ, THUMB_J) translate([0, 0, -3.5]) choc_cap();
         extrude(-200) square(400, true);
     }
-main_structure();
+//main_structure();
 
 module main_structure_subtractor()
     difference() {
@@ -356,21 +366,71 @@ module main_structure_subtractor()
         }
         extrude(-200) square(400, true);
     }
-//main_structure_subtractor();
 
-module bottom_plate() {
-    intersection() {
-        extrude(4) square(400, true);
-        difference() {
+module bottom_edge() {
+    difference() {
+        intersection() {
+            extrude(3) square(400, true);
             main_structure_subtractor();
-            main_structure();
+        }
+        scale([1, 1, 3/0.001]) difference() {
+            difference() {
+                extrude(3) square(400, true);
+                difference() {
+                    extrude(200) square(400, true);
+                    union() {
+                        difference() {
+                            thumb_pad_position() pad_subtractor(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
+                            thumb_pad_position() pad_edge(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
+                        }
+                        difference() {
+                            finger_pad_position() pad_subtractor(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
+                            finger_pad_position() pad_edge(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
+                        }
+                    }
+                }
+            }
         }
     }
-    
 }
-//bottom_plate();
+
+module main_housing()
+    union () {
+        bottom_edge();
+        main_structure();
+    }
+main_housing();
+
+module bottom_blank() {
+    difference() {
+        intersection() {
+            extrude(3) square(400, true);
+            union() {
+                difference() {
+                    thumb_pad_position() pad_subtractor(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
+                    thumb_pad_position() pad_edge(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
+                }
+                difference() {
+                    finger_pad_position() pad_subtractor(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
+                    finger_pad_position() pad_edge(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
+                }
+            }
+        }
+        minkowski() {
+            bottom_edge();
+            cube(0.5, true);
+        }
+        minkowski() {
+            finger_pad_position() pad(FINGER_RXYZTJ, FINGER_I, FINGER_J);
+            cube(0.5, true);
+        }
+    }
+}
+bottom_blank();
 
 
+/*
 module mcu_position() translate([-90, -10, 0]) rotate([90, 0, 90]) children();
 //mcu_position() color([0.0, 0.7, 0.0, 1.0]) cube([35, 0.7*25.4, 1.3], false);
+*/
 

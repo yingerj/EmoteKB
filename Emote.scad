@@ -345,13 +345,8 @@ module main_structure()
                 }
             }
         }
-        //finger_pad_position() grid_full(FINGER_RXYZTJ, FINGER_J) choc(true);
-        //thumb_pad_position() grid_full(THUMB_RXYZTJ, THUMB_J) choc(true);
-        //finger_pad_position() grid_full(FINGER_RXYZTJ, FINGER_J) translate([0, 0, -3.5]) choc_cap();
-        //thumb_pad_position() grid_full(THUMB_RXYZTJ, THUMB_J) translate([0, 0, -3.5]) choc_cap();
         extrude(-200) square(400, true);
     }
-//main_structure();
 
 module main_structure_subtractor()
     difference() {
@@ -394,13 +389,6 @@ module bottom_edge() {
     }
 }
 
-module main_housing()
-    union () {
-        bottom_edge();
-        main_structure();
-    }
-main_housing();
-
 module bottom_blank() {
     difference() {
         intersection() {
@@ -426,8 +414,67 @@ module bottom_blank() {
         }
     }
 }
-bottom_blank();
+//bottom_blank();
 
+HOLES = [
+//  [x, y, r]
+    [-2, 16, 0],
+    [-2, -34, -90],
+    [-93, 21, 90],
+    [-84, -53, -135],
+];
+HOLE_X = 0; HOLE_Y = 1; HOLE_R = 2;
+
+module screw_sockets() {
+    d = 6;
+    for (i = [0:len(HOLES)-1]) {
+        translate([HOLES[i][HOLE_X], HOLES[i][HOLE_Y], 3.2]) rotate([0, 0, HOLES[i][HOLE_R]]) {
+            hull() {
+                extrude(4) circle(d/2, $fn=FN);
+                translate([20, 0, 0]) extrude(4) circle(d/2, $fn=FN);
+                translate([0, 20, 0]) extrude(4) circle(d/2, $fn=FN);
+            }
+        }
+    }
+}
+
+module screw_subtractors() {
+    for (i = [0:len(HOLES)-1]) {
+        translate([HOLES[i][HOLE_X], HOLES[i][HOLE_Y], 0]) rotate([0, 0, HOLES[i][HOLE_R]]) {
+            extrude(8) circle(1, $fn=FN);
+            cylinder(h=2, r1=2, r2=1, $fn=FN, center=false);
+        }
+    }
+}
+
+
+/*
+main_structure();
+color([1,0,0,1]) screw_sockets();
+color([0,1,0,1]) screw_subtractors();
+*/
+
+module main_housing()
+    union () {
+        bottom_edge();
+        main_structure();
+        difference() {
+            intersection() {
+                main_structure_subtractor();
+                screw_sockets();
+            }
+            screw_subtractors();
+        }
+    }
+main_housing();
+
+module bottom_plate() {
+    difference() {
+        bottom_blank();
+        screw_subtractors();
+    }
+}
+bottom_plate();
 
 /*
 module mcu_position() translate([-90, -10, 0]) rotate([90, 0, 90]) children();

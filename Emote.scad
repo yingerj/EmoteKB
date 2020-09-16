@@ -126,7 +126,7 @@ socket_w = 18.0;
 
 module socket()
     translate([0, 0, -nub_depth])
-        extrude(nub_depth) square(socket_w, true);
+        extrude(nub_depth) square(socket_w + TINY, true);
 
 // Corners! On the xy plane..
 //
@@ -391,6 +391,7 @@ module bottom_edge() {
     }
 }
 
+/*
 module bottom_blank() {
     difference() {
         intersection() {
@@ -416,14 +417,15 @@ module bottom_blank() {
         }
     }
 }
-//bottom_blank();
+bottom_blank();
+*/
 
 HOLES = [
 //  [x, y, r]
     [-2, 16, 0],
     [-2, -34, -90],
     [-93, 21, 90],
-    [-84, -53, -135],
+    [-83, -52, -135],
 ];
 HOLE_X = 0; HOLE_Y = 1; HOLE_R = 2;
 
@@ -448,32 +450,92 @@ module screw_subtractors() {
         }
     }
 }
-
-
 /*
 main_structure();
 color([1,0,0,1]) screw_sockets();
 color([0,1,0,1]) screw_subtractors();
 */
 
-module main_housing()
-    union () {
-        main_structure();
-        bottom_edge();
-        difference() {
-            intersection() {
-                main_structure_subtractor();
-                screw_sockets();
+module cable_subtractors() {
+    d = 2.5;
+    up = d/2 + 3;
+            translate([-85, 20, up]) rotate([0, 0, 90]) hull() {
+                rotate([0, 90, 0]) extrude(10) circle(d/2, $fn=FN);
+                translate([0, 0, -20]) rotate([0, 90, 0]) extrude(10) circle(d/2, $fn=FN);
             }
-            screw_subtractors();
+            translate([-66, 20, up]) rotate([0, 0, 90]) hull() {
+                rotate([0, 90, 0]) extrude(10) circle(d/2, $fn=FN);
+                translate([0, 0, -20]) rotate([0, 90, 0]) extrude(10) circle(d/2, $fn=FN);
+            }
+}
+/*
+main_structure();
+color([1,0,0,1]) cable_subtractors();
+*/
+
+module cable_supports() {
+    d = 2.5;
+    up = d/2 + 3;
+    translate([-85, 23, up]) rotate([0, 0, 90]) difference() {
+        hull() {
+            rotate([0, 90, 0]) extrude(10) circle((d-0.5)/2, $fn=FN);
+            translate([0, 0, -20]) rotate([0, 90, 0]) extrude(10) circle((d-0.5)/2, $fn=FN);
         }
+        rotate([0, 90, 0]) extrude(10) circle(d/2, $fn=FN);
+    }
+    translate([-66, 25, up]) rotate([0, 0, 90]) difference() {
+        hull() {
+            rotate([0, 90, 0]) extrude(10) circle((d-0.5)/2, $fn=FN);
+            translate([0, 0, -20]) rotate([0, 90, 0]) extrude(10) circle((d-0.5)/2, $fn=FN);
+        }
+        rotate([0, 90, 0]) extrude(10) circle(d/2, $fn=FN);
+    }
+}
+/*
+main_structure();
+color([1,0,0,1]) cable_supports();
+*/
+
+
+module main_housing()
+    difference () {
+        union () {
+            difference() {
+                main_structure();
+                finger_pad_position() grid_full(FINGER_RXYZTJ, FINGER_J) choc(true);
+                thumb_pad_position() grid_full(THUMB_RXYZTJ, THUMB_J) choc(true);
+            }
+            bottom_edge();
+            difference() {
+                intersection() {
+                    main_structure_subtractor();
+                    screw_sockets();
+                }
+                screw_subtractors();
+            }
+        }
+        cable_subtractors();
     }
 main_housing();
 
 module bottom_plate() {
-    difference() {
-        bottom_blank();
-        screw_subtractors();
+    union() {
+        difference() {
+            extrude(3) square(400, true);
+            difference() {
+                extrude(200) square(400, true);
+                main_structure_subtractor();
+            }
+            minkowski() {
+                bottom_edge();
+                cube(0.5, true);
+            }
+            screw_subtractors();
+        }
+        intersection() {
+            cable_supports();
+            main_structure_subtractor();
+        }
     }
 }
 //bottom_plate();

@@ -438,7 +438,7 @@ color([1,0,0,1]) cable_supports();
 */
 
 
-module main_housing()
+module main_housing(mirror=false)
     difference () {
         union () {
             main_structure();
@@ -450,10 +450,19 @@ module main_housing()
         cable_subtractors();
         screw_subtractors();
         extrude(-200) square(400, true);
-        thumb_pad_position() grid_full(THUMB_RXYZTJ, THUMB_J) choc(true);
-        finger_pad_position() grid_full(FINGER_RXYZTJ, FINGER_J) choc(true);
+        thumb_pad_position() grid_full(THUMB_RXYZTJ, THUMB_J) mirror(m) choc(true);
+        finger_pad_position() grid_full(FINGER_RXYZTJ, FINGER_J) mirror(m) choc(true);
+        if (mirror) {
+            m = [1, 0, 0];
+            thumb_pad_position() grid_full(THUMB_RXYZTJ, THUMB_J) mirror(m) choc(true);
+            finger_pad_position() grid_full(FINGER_RXYZTJ, FINGER_J) mirror(m) choc(true);
+        } else {
+            thumb_pad_position() grid_full(THUMB_RXYZTJ, THUMB_J) choc(true);
+            finger_pad_position() grid_full(FINGER_RXYZTJ, FINGER_J) choc(true);
+        }
     }
-main_housing();
+//main_housing();
+mirror([1, 0, 0]) main_housing(true);
 
 module bottom_plate() {
     union() {
@@ -479,6 +488,7 @@ module bottom_plate() {
     }
 }
 //bottom_plate();
+mirror([1, 0, 0]) bottom_plate();
 
 /*
 module mcu_position() translate([-90, -10, 0]) rotate([90, 0, 90]) children();

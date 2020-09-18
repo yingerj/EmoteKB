@@ -7,7 +7,7 @@
 FN = 16;
 
 // TINY Value for fudging stuff
-TINY = 0.01;
+TINY = 0.1;
 
 // Socket Edge Corner Size
 SKTCNR = 0.6; // Use a big SKTCNR value to debug
@@ -126,7 +126,7 @@ socket_w = 18.0;
 
 module socket()
     translate([0, 0, -nub_depth])
-        extrude(nub_depth) square(socket_w + TINY, true);
+        extrude(nub_depth) square(socket_w, true);
 
 // Corners! On the xy plane..
 //
@@ -328,104 +328,45 @@ module caps_n_keys() {
 finger_sink = [20,0,-100];
 thumb_sink = [-15,0,-100];
 
+module main_structure_hull()
+    union() {
+        finger_pad_position() pad(FINGER_RXYZTJ, FINGER_I, FINGER_J);
+        finger_pad_position() pad_subtractor(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
+        finger_pad_position() pad_edge(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
+
+        thumb_pad_position() pad(THUMB_RXYZTJ, THUMB_I, THUMB_J);
+        thumb_pad_position() pad_subtractor(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
+        thumb_pad_position() pad_edge(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
+    }
+
 module main_structure()
     difference() {
-        union() {
+        main_structure_hull();
+        difference() {
+            thumb_pad_position() pad_subtractor(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
+            thumb_pad_position() pad_edge(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
             thumb_pad_position() pad(THUMB_RXYZTJ, THUMB_I, THUMB_J);
-            finger_pad_position() pad(FINGER_RXYZTJ, FINGER_I, FINGER_J);
-            difference() {
-                finger_pad_position() pad_edge(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
-                thumb_pad_position() pad_subtractor(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
-            }
-            difference() {
-                thumb_pad_position() pad_edge(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
-                finger_pad_position() pad_subtractor(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
-            }
-            intersection() {
-                finger_pad_position() pad_edge(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
-                thumb_pad_position() pad_edge(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
-            }
         }
-        //color([0.6, 0.3, 0.0, 1.0]) translate([0, 0, -3]) choc_cap(); // keycap pressed
-        extrude(-200) square(400, true);
+        difference() {
+            finger_pad_position() pad_subtractor(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
+            finger_pad_position() pad_edge(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
+            finger_pad_position() pad(FINGER_RXYZTJ, FINGER_I, FINGER_J);
+        }
     }
+//main_structure();
 
 module main_structure_subtractor()
     difference() {
-        union() {
-            finger_pad_position() pad(FINGER_RXYZTJ, FINGER_I, FINGER_J);
-            finger_pad_position() pad_subtractor(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
-            finger_pad_position() pad_edge(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
-
-            thumb_pad_position() pad(THUMB_RXYZTJ, THUMB_I, THUMB_J);
-            thumb_pad_position() pad_subtractor(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
-            thumb_pad_position() pad_edge(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
-        }
+        main_structure_hull();
         extrude(-200) square(400, true);
     }
 
-module bottom_edge() {
-    difference() {
-        intersection() {
-            extrude(3) square(400, true);
-            main_structure_subtractor();
-        }
-        scale([1, 1, 3/0.001]) difference() {
-            difference() {
-                extrude(3) square(400, true);
-                difference() {
-                    extrude(200) square(400, true);
-                    union() {
-                        difference() {
-                            thumb_pad_position() pad_subtractor(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
-                            thumb_pad_position() pad_edge(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
-                        }
-                        difference() {
-                            finger_pad_position() pad_subtractor(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
-                            finger_pad_position() pad_edge(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/*
-module bottom_blank() {
-    difference() {
-        intersection() {
-            extrude(3) square(400, true);
-            union() {
-                difference() {
-                    thumb_pad_position() pad_subtractor(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
-                    thumb_pad_position() pad_edge(THUMB_RXYZTJ, THUMB_I, THUMB_J, thumb_sink);
-                }
-                difference() {
-                    finger_pad_position() pad_subtractor(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
-                    finger_pad_position() pad_edge(FINGER_RXYZTJ, FINGER_I, FINGER_J, finger_sink);
-                }
-            }
-        }
-        minkowski() {
-            bottom_edge();
-            cube(0.5, true);
-        }
-        minkowski() {
-            finger_pad_position() pad(FINGER_RXYZTJ, FINGER_I, FINGER_J);
-            cube(0.5, true);
-        }
-    }
-}
-bottom_blank();
-*/
-
 HOLES = [
 //  [x, y, r]
-    [-2, 16, 0],
-    [-2, -34, -90],
-    [-93, 21, 90],
-    [-83, -52, -135],
+    [-3.5, 14.5, 0],
+    [-3.5, -32, -90],
+    [-92, 20, 90],
+    [-83.5, -51, -135],
 ];
 HOLE_X = 0; HOLE_Y = 1; HOLE_R = 2;
 
@@ -445,8 +386,8 @@ module screw_sockets() {
 module screw_subtractors() {
     for (i = [0:len(HOLES)-1]) {
         translate([HOLES[i][HOLE_X], HOLES[i][HOLE_Y], 0]) rotate([0, 0, HOLES[i][HOLE_R]]) {
-            extrude(8) circle(1, $fn=FN);
-            cylinder(h=2, r1=2, r2=1, $fn=FN, center=false);
+            extrude(8) circle(2.8/2, $fn=FN);
+            cylinder(h=2, r1=3, r2=2.8/2, $fn=FN, center=false);
         }
     }
 }
@@ -500,21 +441,17 @@ color([1,0,0,1]) cable_supports();
 module main_housing()
     difference () {
         union () {
-            difference() {
-                main_structure();
-                finger_pad_position() grid_full(FINGER_RXYZTJ, FINGER_J) choc(true);
-                thumb_pad_position() grid_full(THUMB_RXYZTJ, THUMB_J) choc(true);
-            }
-            bottom_edge();
-            difference() {
-                intersection() {
-                    main_structure_subtractor();
-                    screw_sockets();
-                }
-                screw_subtractors();
+            main_structure();
+            intersection() {
+                main_structure_subtractor();
+                screw_sockets();
             }
         }
         cable_subtractors();
+        screw_subtractors();
+        extrude(-200) square(400, true);
+        thumb_pad_position() grid_full(THUMB_RXYZTJ, THUMB_J) choc(true);
+        finger_pad_position() grid_full(FINGER_RXYZTJ, FINGER_J) choc(true);
     }
 main_housing();
 
@@ -522,13 +459,16 @@ module bottom_plate() {
     union() {
         difference() {
             extrude(3) square(400, true);
-            difference() {
-                extrude(200) square(400, true);
-                main_structure_subtractor();
-            }
-            minkowski() {
-                bottom_edge();
-                cube(0.5, true);
+            union() {
+                difference() {
+                    translate([0, 0, -200]) extrude(400) square(400, true);
+                    main_structure_subtractor();
+                }
+                translate([ 0.5, 0, 0]) main_structure();
+                translate([-0.5, 0, 0]) main_structure();
+                translate([0,  0.5, 0]) main_structure();
+                translate([0, -0.5, 0]) main_structure();
+                translate([0, 0, -0.5]) finger_pad_position() pad(FINGER_RXYZTJ, FINGER_I, FINGER_J);
             }
             screw_subtractors();
         }

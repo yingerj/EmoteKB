@@ -398,7 +398,7 @@ color([0,1,0,1]) screw_subtractors();
 */
 
 module cable_subtractors() {
-    d = 2.5;
+    d = 3.25;
     up = d/2 + 3;
             translate([-85, 20, up]) rotate([0, 0, 90]) hull() {
                 rotate([0, 90, 0]) extrude(10) circle(d/2, $fn=FN);
@@ -450,8 +450,6 @@ module main_housing(mirror=false)
         cable_subtractors();
         screw_subtractors();
         extrude(-200) square(400, true);
-        thumb_pad_position() grid_full(THUMB_RXYZTJ, THUMB_J) mirror(m) choc(true);
-        finger_pad_position() grid_full(FINGER_RXYZTJ, FINGER_J) mirror(m) choc(true);
         if (mirror) {
             m = [1, 0, 0];
             thumb_pad_position() grid_full(THUMB_RXYZTJ, THUMB_J) mirror(m) choc(true);
@@ -462,7 +460,7 @@ module main_housing(mirror=false)
         }
     }
 //main_housing();
-mirror([1, 0, 0]) main_housing(true);
+//mirror([1, 0, 0]) main_housing(true);
 
 module bottom_plate() {
     union() {

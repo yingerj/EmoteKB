@@ -306,7 +306,7 @@ module pad_edge(rxyztj, I, J, sink_xyz)
 
 module finger_pad_position() translate([0, 0, 2]) rotate([0, 26, 0]) children();
 
-module thumb_pad_position() translate([-96, -41, 24]) rotate([0, -60, 40]) children();
+module thumb_pad_position() translate([-76, -49, 21]) rotate([35, -60, 40]) children();
 
 module cap_n_key() {
     //color([0.6, 0.8, 0.1, 1.0]) choc();
@@ -326,7 +326,7 @@ module caps_n_keys() {
 //caps_n_keys();
 
 finger_sink = [20,0,-100];
-thumb_sink = [-15,0,-100];
+thumb_sink = [-20,0,-100];
 
 module main_structure_hull()
     union() {
@@ -366,7 +366,7 @@ HOLES = [
     [-3.5, 14.5, 0],
     [-3.5, -32, -90],
     [-92, 20, 90],
-    [-83.5, -51, -135],
+    [-79.5, -47, -150],
 ];
 HOLE_X = 0; HOLE_Y = 1; HOLE_R = 2;
 
@@ -400,14 +400,14 @@ color([0,1,0,1]) screw_subtractors();
 module cable_subtractors() {
     d = 3.25;
     up = d/2 + 3;
-            translate([-85, 20, up]) rotate([0, 0, 90]) hull() {
-                rotate([0, 90, 0]) extrude(10) circle(d/2, $fn=FN);
-                translate([0, 0, -20]) rotate([0, 90, 0]) extrude(10) circle(d/2, $fn=FN);
-            }
-            translate([-66, 20, up]) rotate([0, 0, 90]) hull() {
-                rotate([0, 90, 0]) extrude(10) circle(d/2, $fn=FN);
-                translate([0, 0, -20]) rotate([0, 90, 0]) extrude(10) circle(d/2, $fn=FN);
-            }
+    translate([-85, 20, up]) rotate([0, 0, 90]) hull() {
+        rotate([0, 90, 0]) extrude(10) circle(d/2, $fn=FN);
+        translate([0, 0, -20]) rotate([0, 90, 0]) extrude(10) circle(d/2, $fn=FN);
+    }
+    translate([-66, 20, up]) rotate([0, 0, 90]) hull() {
+        rotate([0, 90, 0]) extrude(10) circle(d/2, $fn=FN);
+        translate([0, 0, -20]) rotate([0, 90, 0]) extrude(10) circle(d/2, $fn=FN);
+    }
 }
 /*
 main_structure();
@@ -437,6 +437,11 @@ main_structure();
 color([1,0,0,1]) cable_supports();
 */
 
+module cord_subtractor() {
+    translate([-44, -35, 8]) rotate([0, 0, 90]) {
+        rotate([0, 90, 0]) extrude(10) circle(5/2, $fn=FN);
+    }
+}
 
 module main_housing(mirror=false)
     difference () {
@@ -448,6 +453,7 @@ module main_housing(mirror=false)
             }
         }
         cable_subtractors();
+        cord_subtractor();
         screw_subtractors();
         extrude(-200) square(400, true);
         if (mirror) {
@@ -459,7 +465,7 @@ module main_housing(mirror=false)
             finger_pad_position() grid_full(FINGER_RXYZTJ, FINGER_J) choc(true);
         }
     }
-//main_housing();
+main_housing();
 //mirror([1, 0, 0]) main_housing(true);
 
 module bottom_plate() {
@@ -486,7 +492,7 @@ module bottom_plate() {
     }
 }
 //bottom_plate();
-mirror([1, 0, 0]) bottom_plate();
+//mirror([1, 0, 0]) bottom_plate();
 
 /*
 module mcu_position() translate([-90, -10, 0]) rotate([90, 0, 90]) children();

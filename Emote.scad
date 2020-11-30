@@ -386,16 +386,18 @@ module screw_sockets() {
 module screw_subtractors() {
     for (i = [0:len(HOLES)-1]) {
         translate([HOLES[i][HOLE_X], HOLES[i][HOLE_Y], 0]) rotate([0, 0, HOLES[i][HOLE_R]]) {
-            extrude(8) circle(2.8/2, $fn=FN);
-            cylinder(h=2, r1=3, r2=2.8/2, $fn=FN, center=false);
+            union() {
+                extrude(8) circle(2.8/2, $fn=FN);
+                cylinder(h=3.5, r1=3.5, r2=0, $fn=FN, center=false);
+            }
         }
     }
 }
 /*
-main_structure();
-color([1,0,0,1]) screw_sockets();
+//main_structure();
+//color([1,0,0,1]) screw_sockets();
 color([0,1,0,1]) screw_subtractors();
-*/
+//*/
 
 module cable_subtractors() {
     d = 3.25;
@@ -465,7 +467,7 @@ module main_housing(mirror=false)
             finger_pad_position() grid_full(FINGER_RXYZTJ, FINGER_J) choc(true);
         }
     }
-main_housing();
+//main_housing();
 //mirror([1, 0, 0]) main_housing(true);
 
 module bottom_plate() {
@@ -492,7 +494,14 @@ module bottom_plate() {
     }
 }
 //bottom_plate();
-//mirror([1, 0, 0]) bottom_plate();
+mirror([1, 0, 0]) bottom_plate();
+
+/*
+intersection() {
+    bottom_plate();
+    translate([-94,20,0]) cube(15, true);
+}
+*/
 
 /*
 module mcu_position() translate([-90, -10, 0]) rotate([90, 0, 90]) children();
